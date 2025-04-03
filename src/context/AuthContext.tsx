@@ -5,8 +5,8 @@ import { toast } from "sonner";
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string, userType?: string) => Promise<boolean>;
+  register: (name: string, email: string, password: string, userType?: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -16,6 +16,14 @@ const defaultUser: User = {
   name: "Demo User",
   email: "user@example.com",
   role: "user",
+  avatar: "/placeholder.svg"
+};
+
+const defaultSeller: User = {
+  id: "3",
+  name: "Demo Seller",
+  email: "seller@example.com",
+  role: "seller",
   avatar: "/placeholder.svg"
 };
 
@@ -35,14 +43,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Check if user is saved in localStorage on component mount
-    const savedUser = localStorage.getItem("furniture-user");
+    const savedUser = localStorage.getItem("e-furnito-user");
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, userType = "buyer") => {
     setIsLoading(true);
     try {
       // Simulating login API call
@@ -51,14 +59,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Demo login logic
       if (email === "admin@example.com" && password === "admin") {
         setUser(defaultAdmin);
-        localStorage.setItem("furniture-user", JSON.stringify(defaultAdmin));
-        toast.success("Admin logged in successfully");
+        localStorage.setItem("e-furnito-user", JSON.stringify(defaultAdmin));
+        toast.success("Admin signed in successfully");
+        setIsLoading(false);
+        return true;
+      } else if (email === "seller@example.com" && password === "seller") {
+        setUser(defaultSeller);
+        localStorage.setItem("e-furnito-user", JSON.stringify(defaultSeller));
+        toast.success("Seller signed in successfully");
         setIsLoading(false);
         return true;
       } else if (email === "user@example.com" && password === "user") {
         setUser(defaultUser);
-        localStorage.setItem("furniture-user", JSON.stringify(defaultUser));
-        toast.success("Logged in successfully");
+        localStorage.setItem("e-furnito-user", JSON.stringify(defaultUser));
+        toast.success("Signed in successfully");
         setIsLoading(false);
         return true;
       } else {
@@ -68,13 +82,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("Login failed");
+      toast.error("Sign in failed");
       setIsLoading(false);
       return false;
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (name: string, email: string, password: string, userType = "buyer") => {
     setIsLoading(true);
     try {
       // Simulating register API call
@@ -85,13 +99,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: Math.random().toString(36).substring(2, 9),
         name,
         email,
-        role: "user",
+        role: userType === "seller" ? "seller" : "user",
         avatar: "/placeholder.svg"
       };
       
       setUser(newUser);
-      localStorage.setItem("furniture-user", JSON.stringify(newUser));
-      toast.success("Registered successfully");
+      localStorage.setItem("e-furnito-user", JSON.stringify(newUser));
+      toast.success(userType === "seller" ? "Seller registered successfully" : "Registered successfully");
       setIsLoading(false);
       return true;
     } catch (error) {
@@ -104,8 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("furniture-user");
-    toast.info("Logged out");
+    localStorage.removeItem("e-furnito-user");
+    toast.info("Signed out");
   };
 
   return (

@@ -47,7 +47,7 @@ const Header = () => {
           to="/" 
           className="flex items-center gap-2 text-xl font-semibold text-primary"
         >
-          <span className="hidden sm:inline">Furniture</span>
+          <span className="hidden sm:inline">E-FURNITO</span>
           <span className="font-light text-muted-foreground">Marketplace</span>
         </Link>
 
@@ -174,13 +174,13 @@ const Header = () => {
                   onClick={logout}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
+                  <span>Sign out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <Button variant="default" onClick={() => navigate("/login")}>
-              Log in
+              Sign in
             </Button>
           )}
         </div>
