@@ -27,6 +27,8 @@ import {
   Package,
   ShoppingCart,
   Users,
+  Plus,
+  X,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -34,35 +36,113 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
 import { useState } from "react";
+import { Product, Category } from "@/types";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { ProductForm } from "@/components/admin/ProductForm";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [productsList, setProductsList] = useState([...products]);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [currentProduct, setCurrentProduct] = useState<Product | undefined>(undefined);
 
   if (!user || user.role !== "admin") {
     return <Navigate to="/login" replace />;
   }
 
-  const filteredProducts = products.filter((product) =>
+  const filteredProducts = productsList.filter((product) =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleAddProduct = () => {
+    setCurrentProduct(undefined);
+    setIsFormOpen(true);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setCurrentProduct(product);
+    setIsFormOpen(true);
+  };
+
   const handleDeleteProduct = (id: string) => {
-    toast.success(`Product ${id} deleted successfully`);
+    setProductsList(productsList.filter(product => product.id !== id));
+    toast.success(`Product deleted successfully`);
+  };
+
+  const handleProductSubmit = (data: any) => {
+    // Find the category from its ID
+    const selectedCategory = productsList.find(p => p.id === currentProduct?.id)?.category || 
+                            productsList[0].category;
+    
+    if (currentProduct) {
+      // Update existing product
+      const updatedProducts = productsList.map(product => {
+        if (product.id === currentProduct.id) {
+          return {
+            ...product,
+            name: data.name,
+            description: data.description,
+            price: Number(data.price),
+            stock: Number(data.stock),
+            images: data.images,
+            category: selectedCategory
+          };
+        }
+        return product;
+      });
+      
+      setProductsList(updatedProducts);
+      toast.success("Product updated successfully");
+    } else {
+      // Add new product
+      const newProduct: Product = {
+        id: Math.random().toString(36).substring(2, 9),
+        slug: data.name.toLowerCase().replace(/\s+/g, "-"),
+        name: data.name,
+        description: data.description,
+        price: Number(data.price),
+        stock: Number(data.stock),
+        images: data.images,
+        category: selectedCategory,
+        rating: 0,
+        reviews: [],
+        seller: user
+      };
+      
+      setProductsList([newProduct, ...productsList]);
+      toast.success("Product added successfully");
+    }
+    
+    setIsFormOpen(false);
   };
 
   const totalRevenue = mockSalesData.reduce((sum, data) => sum + data.sales, 0);
   const totalOrders = 145;
   const totalCustomers = 78;
-  const totalProducts = products.length;
+  const totalProducts = productsList.length;
 
   return (
     <MainLayout hideFooter>
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <h1 className="text-2xl font-bold sm:text-3xl">Admin Dashboard</h1>
-          <Button>Add New Product</Button>
+          <Button onClick={handleAddProduct}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add New Product
+          </Button>
         </div>
+
+        {/* Product Form Dialog */}
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+          <DialogContent className="sm:max-w-[800px]">
+            <ProductForm
+              product={currentProduct}
+              onSubmit={handleProductSubmit}
+              onCancel={() => setIsFormOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
 
         {/* Stats Cards */}
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -248,6 +328,9 @@ const AdminDashboard = () => {
                                   src={product.images[0]}
                                   alt={product.name}
                                   className="mr-3 h-8 w-8 rounded-md object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "/placeholder.svg";
+                                  }}
                                 />
                                 <span className="font-medium">{product.name}</span>
                               </div>
@@ -277,7 +360,11 @@ const AdminDashboard = () => {
                             </td>
                             <td className="whitespace-nowrap px-6 py-4">
                               <div className="flex space-x-2">
-                                <Button variant="outline" size="sm">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleEditProduct(product)}
+                                >
                                   Edit
                                 </Button>
                                 <Button
@@ -328,7 +415,7 @@ const AdminDashboard = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {products
+                        {productsList
                           .filter((product) => product.stock > 0 && product.stock <= 5)
                           .map((product) => (
                             <tr key={product.id} className="border-t hover:bg-muted/30">
@@ -338,6 +425,9 @@ const AdminDashboard = () => {
                                     src={product.images[0]}
                                     alt={product.name}
                                     className="mr-3 h-8 w-8 rounded-md object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = "/placeholder.svg";
+                                    }}
                                   />
                                   <span className="font-medium">{product.name}</span>
                                 </div>
@@ -354,8 +444,12 @@ const AdminDashboard = () => {
                                 </Badge>
                               </td>
                               <td className="whitespace-nowrap px-6 py-4">
-                                <Button variant="outline" size="sm">
-                                  Restock
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleEditProduct(product)}
+                                >
+                                  Edit Stock
                                 </Button>
                               </td>
                             </tr>
@@ -388,7 +482,7 @@ const AdminDashboard = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {products
+                        {productsList
                           .filter((product) => product.stock === 0)
                           .map((product) => (
                             <tr key={product.id} className="border-t hover:bg-muted/30">
@@ -398,6 +492,9 @@ const AdminDashboard = () => {
                                     src={product.images[0]}
                                     alt={product.name}
                                     className="mr-3 h-8 w-8 rounded-md object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = "/placeholder.svg";
+                                    }}
                                   />
                                   <span className="font-medium">{product.name}</span>
                                 </div>
@@ -414,7 +511,11 @@ const AdminDashboard = () => {
                                 </Badge>
                               </td>
                               <td className="whitespace-nowrap px-6 py-4">
-                                <Button variant="outline" size="sm">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleEditProduct(product)}
+                                >
                                   Restock
                                 </Button>
                               </td>
