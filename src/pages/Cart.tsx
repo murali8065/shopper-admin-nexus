@@ -1,10 +1,9 @@
-
 import MainLayout from "@/components/layout/MainLayout";
 import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { MinusCircle, PlusCircle, ShoppingBag, Trash2 } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 const Cart = () => {
   const { items, updateQuantity, removeFromCart, totalItems, totalPrice } = useCart();

@@ -1,4 +1,3 @@
-
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate } from "react-router-dom";
@@ -9,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Package, MapPin, CreditCard, User as UserIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState } from "react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 const Profile = () => {
   const { user } = useAuth();
