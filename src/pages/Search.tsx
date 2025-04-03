@@ -12,8 +12,10 @@ const Search = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
   const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(true);
 
   useEffect(() => {
+    setIsSearching(true);
     // Filter products based on search query
     const results = products.filter(
       (product) =>
@@ -21,7 +23,14 @@ const Search = () => {
         product.description.toLowerCase().includes(query.toLowerCase()) ||
         product.category.name.toLowerCase().includes(query.toLowerCase())
     );
-    setSearchResults(results);
+    
+    // Small timeout to simulate searching and allow rendering to complete
+    const timer = setTimeout(() => {
+      setSearchResults(results);
+      setIsSearching(false);
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, [query]);
 
   return (
@@ -34,7 +43,18 @@ const Search = () => {
           </p>
         </div>
 
-        {searchResults.length > 0 ? (
+        {isSearching ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((_, index) => (
+              <div key={index} className="animate-pulse">
+                <div className="bg-gray-200 aspect-square rounded-md mb-3"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+              </div>
+            ))}
+          </div>
+        ) : searchResults.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {searchResults.map((product) => (
               <ProductCard key={product.id} product={product} />

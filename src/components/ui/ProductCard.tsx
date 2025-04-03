@@ -3,8 +3,9 @@ import { Product } from "@/types";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
-import { ShoppingCart, Eye } from "lucide-react";
+import { ShoppingCart, Eye, ImageOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
 
 interface ProductCardProps {
   product: Product;
@@ -12,16 +13,28 @@ interface ProductCardProps {
 
 const ProductCard = ({ product }: ProductCardProps) => {
   const { addToCart } = useCart();
+  const [imageError, setImageError] = useState(false);
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
 
   return (
     <div className="product-card group animate-fade-in furniture-shadow transition-all duration-300">
       <Link to={`/product/${product.slug}`} className="block overflow-hidden">
-        <div className="relative overflow-hidden rounded-md">
-          <img 
-            src={product.images[0]} 
-            alt={product.name} 
-            className="product-image transition-transform duration-500 group-hover:scale-110" 
-          />
+        <div className="relative overflow-hidden rounded-md bg-gray-100 aspect-square">
+          {!imageError ? (
+            <img 
+              src={product.images[0]} 
+              alt={product.name} 
+              className="product-image h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" 
+              onError={handleImageError}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full w-full bg-gray-100">
+              <ImageOff className="h-12 w-12 text-gray-400" />
+            </div>
+          )}
           {product.stock <= 5 && product.stock > 0 && (
             <Badge variant="secondary" className="absolute right-2 top-2 bg-amber-100/80 text-amber-800 backdrop-blur">
               Only {product.stock} left

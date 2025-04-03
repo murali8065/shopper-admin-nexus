@@ -1,4 +1,3 @@
-
 import { useParams, Link } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import { products } from "@/data/mockData";
@@ -6,7 +5,7 @@ import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Star, Check, AlertCircle, ShoppingCart, Home } from "lucide-react";
+import { Star, Check, AlertCircle, ShoppingCart, Home, ImageOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProductCard from "@/components/ui/ProductCard";
 
@@ -15,12 +14,25 @@ const Product = () => {
   const product = products.find(p => p.slug === slug);
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(product?.images[0] || "");
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const { addToCart } = useCart();
   
   // Find related products from the same category
   const relatedProducts = products
     .filter(p => p.category.id === product?.category.id && p.id !== product?.id)
     .slice(0, 4);
+
+  const handleImageError = (imageSrc: string) => {
+    setImageErrors(prev => ({ ...prev, [imageSrc]: true }));
+    
+    // If the active image failed to load, try to set another non-failed image as active
+    if (imageSrc === activeImage && product) {
+      const nonFailedImage = product.images.find(img => !imageErrors[img]);
+      if (nonFailedImage) {
+        setActiveImage(nonFailedImage);
+      }
+    }
+  };
 
   if (!product) {
     return (
@@ -77,27 +89,41 @@ const Product = () => {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
           {/* Product Images */}
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-lg">
-              <img 
-                src={activeImage} 
-                alt={product.name} 
-                className="h-full w-full object-cover object-center"
-              />
+            <div className="overflow-hidden rounded-lg bg-gray-100 aspect-square">
+              {!imageErrors[activeImage] ? (
+                <img 
+                  src={activeImage} 
+                  alt={product.name} 
+                  className="h-full w-full object-cover object-center"
+                  onError={() => handleImageError(activeImage)}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full w-full">
+                  <ImageOff className="h-16 w-16 text-gray-400" />
+                </div>
+              )}
             </div>
             <div className="flex gap-2 overflow-auto">
               {product.images.map((image, index) => (
                 <button
                   key={index}
-                  className={`relative min-w-[80px] overflow-hidden rounded-md border border-gray-200 ${
+                  className={`relative min-w-[80px] overflow-hidden rounded-md border border-gray-200 bg-gray-50 ${
                     activeImage === image ? 'ring-2 ring-primary ring-offset-2' : ''
                   }`}
                   onClick={() => setActiveImage(image)}
                 >
-                  <img 
-                    src={image} 
-                    alt={`${product.name} - Image ${index + 1}`} 
-                    className="h-20 w-20 object-cover object-center"
-                  />
+                  {!imageErrors[image] ? (
+                    <img 
+                      src={image} 
+                      alt={`${product.name} - Image ${index + 1}`} 
+                      className="h-20 w-20 object-cover object-center"
+                      onError={() => handleImageError(image)}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-20 w-20">
+                      <ImageOff className="h-6 w-6 text-gray-400" />
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
