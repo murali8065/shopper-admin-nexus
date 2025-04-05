@@ -4,7 +4,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { X } from "lucide-react";
+import { X, ImageOff } from "lucide-react";
 
 import { Product, Category } from "@/types";
 import { Input } from "@/components/ui/input";
@@ -50,6 +50,8 @@ export function ProductForm({ product, onSubmit, onCancel }: ProductFormProps) {
     product?.images || [""]
   );
   
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  
   const defaultValues: Partial<ProductFormValues> = {
     name: product?.name || "",
     description: product?.description || "",
@@ -76,6 +78,7 @@ export function ProductForm({ product, onSubmit, onCancel }: ProductFormProps) {
         images: product.images,
       });
       setImageUrls(product.images);
+      setImageErrors({});
     }
   }, [product, form]);
 
@@ -87,14 +90,51 @@ export function ProductForm({ product, onSubmit, onCancel }: ProductFormProps) {
     const newImageUrls = [...imageUrls];
     newImageUrls.splice(index, 1);
     setImageUrls(newImageUrls);
+    
+    // Also update the image errors state
+    const newImageErrors = { ...imageErrors };
+    delete newImageErrors[imageUrls[index]];
+    setImageErrors(newImageErrors);
+    
     form.setValue("images", newImageUrls);
   };
 
   const handleImageChange = (index: number, value: string) => {
     const newImageUrls = [...imageUrls];
+    
+    // If the URL is changing, reset any error state for the old URL
+    if (imageErrors[newImageUrls[index]]) {
+      const newImageErrors = { ...imageErrors };
+      delete newImageErrors[newImageUrls[index]];
+      setImageErrors(newImageErrors);
+    }
+    
     newImageUrls[index] = value;
     setImageUrls(newImageUrls);
     form.setValue("images", newImageUrls.filter(url => url.trim() !== ""));
+  };
+
+  const handleImageError = (url: string) => {
+    setImageErrors(prev => ({ ...prev, [url]: true }));
+  };
+
+  const validateForm = (data: ProductFormValues) => {
+    // Check if any of the images have loading errors
+    const validImages = data.images.filter(url => !imageErrors[url]);
+    
+    if (validImages.length === 0 && data.images.length > 0) {
+      toast.error("All images are invalid. Please provide at least one valid image URL.");
+      return false;
+    }
+    
+    // Filter out images with errors before submitting
+    const filteredData = {
+      ...data,
+      images: data.images.filter(url => !imageErrors[url])
+    };
+    
+    onSubmit(filteredData);
+    return true;
   };
 
   return (
@@ -105,7 +145,7 @@ export function ProductForm({ product, onSubmit, onCancel }: ProductFormProps) {
 
       <Form {...form}>
         <form 
-          onSubmit={form.handleSubmit(onSubmit)}
+          onSubmit={form.handleSubmit(validateForm)}
           className="space-y-4"
         >
           <FormField
@@ -201,22 +241,41 @@ export function ProductForm({ product, onSubmit, onCancel }: ProductFormProps) {
           <div className="space-y-2">
             <FormLabel>Product Images</FormLabel>
             {imageUrls.map((url, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={url}
-                  onChange={(e) => handleImageChange(index, e.target.value)}
-                  placeholder="Enter image URL"
-                  className="flex-1"
-                />
-                {imageUrls.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleRemoveImageField(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+              <div key={index} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={url}
+                    onChange={(e) => handleImageChange(index, e.target.value)}
+                    placeholder="Enter image URL"
+                    className="flex-1"
+                  />
+                  {imageUrls.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleRemoveImageField(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                
+                {url && (
+                  <div className="relative h-20 w-20 overflow-hidden rounded border bg-gray-50">
+                    {!imageErrors[url] ? (
+                      <img 
+                        src={url} 
+                        alt="Product preview" 
+                        className="h-full w-full object-cover"
+                        onError={() => handleImageError(url)}
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-gray-100">
+                        <ImageOff className="h-8 w-8 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             ))}
