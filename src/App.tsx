@@ -19,6 +19,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Shop from "./pages/Shop";
 import Search from "./pages/Search";
 import Category from "./pages/Category";
+import Categories from "./pages/Categories";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="/shop" element={<Shop />} />
               <Route path="/search" element={<Search />} />
               <Route path="/category/:slug" element={<Category />} />
+              <Route path="/categories" element={<Categories />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
