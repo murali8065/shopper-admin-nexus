@@ -24,8 +24,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Trash2, ShoppingCart, CreditCard, ArrowRight, ImageOff } from "lucide-react";
+import { Trash2, ShoppingCart, CreditCard, ArrowRight, ImageOff, Clock, Package, Truck } from "lucide-react";
 import { CartItem } from "@/types";
 
 const Cart = () => {
@@ -34,6 +42,8 @@ const Cart = () => {
   const navigate = useNavigate();
   const [processing, setProcessing] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [showOrderConfirmation, setShowOrderConfirmation] = useState(false);
+  const [orderNumber, setOrderNumber] = useState("");
 
   const handleQuantityChange = (item: CartItem, newQuantity: number) => {
     if (newQuantity > 0 && newQuantity <= item.product.stock) {
@@ -48,6 +58,12 @@ const Cart = () => {
     }));
   };
 
+  const generateOrderNumber = () => {
+    const prefix = "ORD";
+    const randomDigits = Math.floor(10000 + Math.random() * 90000);
+    return `${prefix}-${randomDigits}`;
+  };
+
   const handleCheckout = () => {
     if (!user) {
       toast.error("Please sign in to checkout");
@@ -57,13 +73,46 @@ const Cart = () => {
     
     setProcessing(true);
     
+    // Generate order number
+    const newOrderNumber = generateOrderNumber();
+    setOrderNumber(newOrderNumber);
+    
     // Simulate processing
     setTimeout(() => {
-      toast.success("Order placed successfully!");
-      clearCart();
+      // Store order in localStorage
+      const existingOrders = JSON.parse(localStorage.getItem("furniture-orders") || "[]");
+      const newOrder = {
+        id: newOrderNumber,
+        date: new Date().toISOString(),
+        status: "processing",
+        total: calculateTotalWithTaxAndShipping(),
+        items: items.length,
+        products: items.map(item => ({
+          id: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity,
+          image: item.product.images[0]
+        }))
+      };
+      
+      localStorage.setItem("furniture-orders", JSON.stringify([...existingOrders, newOrder]));
+      
       setProcessing(false);
-      navigate("/profile");
+      setShowOrderConfirmation(true);
     }, 1500);
+  };
+
+  const calculateTotalWithTaxAndShipping = () => {
+    const shippingCost = totalPrice > 100 ? 0 : 10;
+    const tax = totalPrice * 0.07;
+    return totalPrice + shippingCost + tax;
+  };
+
+  const handleOrderConfirmationClose = () => {
+    setShowOrderConfirmation(false);
+    clearCart();
+    navigate("/orders");
   };
 
   return (
@@ -220,11 +269,7 @@ const Cart = () => {
                     <div className="flex justify-between font-semibold">
                       <span>Total</span>
                       <span>
-                        ${(
-                          totalPrice + 
-                          (totalPrice > 100 ? 0 : 10) + 
-                          (totalPrice * 0.07)
-                        ).toFixed(2)}
+                        ${calculateTotalWithTaxAndShipping().toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -286,6 +331,56 @@ const Cart = () => {
             </Button>
           </div>
         )}
+
+        {/* Order Confirmation Dialog */}
+        <Dialog open={showOrderConfirmation} onOpenChange={setShowOrderConfirmation}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-center">Order Placed Successfully!</DialogTitle>
+              <DialogDescription className="text-center">
+                Thank you for your purchase
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="flex flex-col items-center justify-center space-y-4 py-4">
+              <div className="rounded-full bg-green-100 p-3">
+                <Package className="h-8 w-8 text-green-600" />
+              </div>
+              
+              <div className="text-center">
+                <p className="text-lg font-semibold">Order #{orderNumber}</p>
+                <p className="text-sm text-muted-foreground">
+                  A confirmation email has been sent to your email address.
+                </p>
+              </div>
+              
+              <div className="mt-4 w-full space-y-2 rounded-md bg-muted p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Order Total:</span>
+                  <span className="font-semibold">${calculateTotalWithTaxAndShipping().toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Estimated Delivery:</span>
+                  <span className="text-sm">3-5 business days</span>
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter className="flex-col sm:flex-col sm:space-x-0 sm:space-y-2">
+              <Button onClick={handleOrderConfirmationClose} className="w-full">
+                <Truck className="mr-2 h-4 w-4" />
+                Track Your Order
+              </Button>
+              <Button variant="outline" asChild className="w-full">
+                <Link to="/shop">
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  Continue Shopping
+                </Link>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </MainLayout>
   );

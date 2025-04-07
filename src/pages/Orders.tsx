@@ -1,37 +1,91 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, ArrowLeft, ShoppingBag } from "lucide-react";
+import { 
+  Package, 
+  ArrowLeft, 
+  ShoppingBag, 
+  Clock, 
+  Truck, 
+  MapPin 
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
-// Mock orders data (in a real app, this would come from an API)
-const mockOrders = [
-  {
-    id: "ORD-1234",
-    date: "2025-03-01",
-    status: "delivered",
-    total: 459.99,
-    items: 3
-  },
-  {
-    id: "ORD-5678",
-    date: "2025-03-27",
-    status: "processing",
-    total: 129.50,
-    items: 1
-  }
+// Order tracking status steps
+const trackingSteps = [
+  { status: "processing", name: "Order Processing", icon: Clock },
+  { status: "shipped", name: "Order Shipped", icon: Package },
+  { status: "out_for_delivery", name: "Out for Delivery", icon: Truck },
+  { status: "delivered", name: "Delivered", icon: MapPin },
 ];
 
 const Orders = () => {
   const { user } = useAuth();
-  const [orders] = useState(mockOrders);
+  const [orders, setOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
+  
+  // Load orders from localStorage
+  useEffect(() => {
+    const savedOrders = localStorage.getItem("furniture-orders");
+    if (savedOrders) {
+      try {
+        setOrders(JSON.parse(savedOrders));
+      } catch (error) {
+        console.error("Failed to parse orders from localStorage:", error);
+      }
+    }
+  }, []);
   
   if (!user) {
     return <Navigate to="/login" replace />;
   }
+
+  // If no saved orders, use these mock orders
+  const ordersToDisplay = orders.length > 0 ? orders : [
+    {
+      id: "ORD-1234",
+      date: "2025-03-01",
+      status: "delivered",
+      total: 459.99,
+      items: 3
+    },
+    {
+      id: "ORD-5678",
+      date: "2025-03-27",
+      status: "processing",
+      total: 129.50,
+      items: 1
+    }
+  ];
+
+  const handleTrackOrder = (order) => {
+    setSelectedOrder(order);
+    setTrackingDialogOpen(true);
+  };
+
+  // Determine the current step based on order status
+  const getCurrentStep = (status) => {
+    switch (status) {
+      case "processing": return 0;
+      case "shipped": return 1;
+      case "out_for_delivery": return 2;
+      case "delivered": return 3;
+      default: return 0;
+    }
+  };
   
   return (
     <MainLayout>
@@ -71,9 +125,9 @@ const Orders = () => {
           </TabsList>
           
           <TabsContent value="all">
-            {orders.length > 0 ? (
+            {ordersToDisplay.length > 0 ? (
               <div className="space-y-4">
-                {orders.map((order) => (
+                {ordersToDisplay.map((order) => (
                   <div key={order.id} className="rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                       <div>
@@ -93,12 +147,22 @@ const Orders = () => {
                           Ordered on {new Date(order.date).toLocaleDateString()}
                         </p>
                         <p className="mt-1 text-sm">
-                          {order.items} {order.items === 1 ? "item" : "items"} · ${order.total.toFixed(2)}
+                          {order.items} {order.items === 1 ? "item" : "items"} · ${Number(order.total).toFixed(2)}
                         </p>
                       </div>
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleTrackOrder(order)}
+                        >
+                          <Truck className="mr-1 h-4 w-4" />
+                          Track Order
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          View Details
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -118,9 +182,9 @@ const Orders = () => {
           </TabsContent>
           
           <TabsContent value="processing">
-            {orders.filter(order => order.status === "processing").length > 0 ? (
+            {ordersToDisplay.filter(order => order.status === "processing").length > 0 ? (
               <div className="space-y-4">
-                {orders.filter(order => order.status === "processing").map((order) => (
+                {ordersToDisplay.filter(order => order.status === "processing").map((order) => (
                   <div key={order.id} className="rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                       <div>
@@ -134,12 +198,22 @@ const Orders = () => {
                           Ordered on {new Date(order.date).toLocaleDateString()}
                         </p>
                         <p className="mt-1 text-sm">
-                          {order.items} {order.items === 1 ? "item" : "items"} · ${order.total.toFixed(2)}
+                          {order.items} {order.items === 1 ? "item" : "items"} · ${Number(order.total).toFixed(2)}
                         </p>
                       </div>
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleTrackOrder(order)}
+                        >
+                          <Truck className="mr-1 h-4 w-4" />
+                          Track Order
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          View Details
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -164,9 +238,9 @@ const Orders = () => {
           </TabsContent>
           
           <TabsContent value="delivered">
-            {orders.filter(order => order.status === "delivered").length > 0 ? (
+            {ordersToDisplay.filter(order => order.status === "delivered").length > 0 ? (
               <div className="space-y-4">
-                {orders.filter(order => order.status === "delivered").map((order) => (
+                {ordersToDisplay.filter(order => order.status === "delivered").map((order) => (
                   <div key={order.id} className="rounded-lg border bg-card p-4 shadow-sm">
                     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                       <div>
@@ -180,12 +254,22 @@ const Orders = () => {
                           Ordered on {new Date(order.date).toLocaleDateString()}
                         </p>
                         <p className="mt-1 text-sm">
-                          {order.items} {order.items === 1 ? "item" : "items"} · ${order.total.toFixed(2)}
+                          {order.items} {order.items === 1 ? "item" : "items"} · ${Number(order.total).toFixed(2)}
                         </p>
                       </div>
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleTrackOrder(order)}
+                        >
+                          <Truck className="mr-1 h-4 w-4" />
+                          Track Order
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          View Details
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -200,6 +284,88 @@ const Orders = () => {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Order Tracking Dialog */}
+        {selectedOrder && (
+          <Dialog open={trackingDialogOpen} onOpenChange={setTrackingDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Track Your Order</DialogTitle>
+                <DialogDescription>
+                  Order #{selectedOrder.id} placed on {new Date(selectedOrder.date).toLocaleDateString()}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="py-4">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium">Estimated Delivery</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedOrder.status === "delivered" 
+                        ? "Delivered"
+                        : "April 15, 2025"}
+                    </p>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${
+                    selectedOrder.status === "delivered" 
+                      ? "bg-green-100 text-green-700" 
+                      : "bg-yellow-100 text-yellow-700"
+                  }`}>
+                    {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
+                  </span>
+                </div>
+                
+                <div className="mt-8 space-y-8">
+                  {trackingSteps.map((step, index) => {
+                    const currentStep = getCurrentStep(selectedOrder.status);
+                    const isCompleted = index <= currentStep;
+                    const isActive = index === currentStep;
+                    
+                    return (
+                      <div key={step.status} className="relative flex">
+                        {index !== 0 && (
+                          <div 
+                            className={`absolute left-6 top-0 h-full w-0.5 -translate-x-1/2 ${
+                              index <= currentStep ? "bg-primary" : "bg-gray-200"
+                            }`} 
+                            style={{ top: '-2rem', height: '2rem' }}
+                          />
+                        )}
+                        
+                        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 ${
+                          isCompleted 
+                            ? "border-primary bg-primary text-primary-foreground" 
+                            : "border-gray-200 bg-background text-muted-foreground"
+                        }`}>
+                          <step.icon className="h-5 w-5" />
+                        </div>
+                        
+                        <div className="ml-4">
+                          <p className={`font-medium ${isActive ? "text-primary" : ""}`}>
+                            {step.name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {isCompleted 
+                              ? index === currentStep 
+                                ? "In progress" 
+                                : "Completed"
+                              : "Pending"}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button onClick={() => setTrackingDialogOpen(false)} className="w-full">
+                  Close
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </MainLayout>
   );
