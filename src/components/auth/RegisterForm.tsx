@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -26,12 +25,18 @@ const RegisterForm = () => {
       return;
     }
     
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters long");
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
       const success = await register(name, email, password, userType);
       if (success) {
         navigate("/");
+        toast.success("Registration successful! You are now logged in.");
       }
     } catch (error) {
       toast.error("An error occurred during registration");

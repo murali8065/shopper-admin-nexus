@@ -35,6 +35,11 @@ const defaultAdmin: User = {
   avatar: "/placeholder.svg"
 };
 
+// Store for registered users
+interface StoredUser extends User {
+  password: string;
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -56,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Simulating login API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
       
-      // Demo login logic
+      // Check for default accounts first
       if (email === "admin@example.com" && password === "admin") {
         setUser(defaultAdmin);
         localStorage.setItem("e-furnito-user", JSON.stringify(defaultAdmin));
@@ -75,11 +80,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast.success("Signed in successfully");
         setIsLoading(false);
         return true;
-      } else {
-        toast.error("Invalid credentials");
-        setIsLoading(false);
-        return false;
       }
+      
+      // Check for registered users
+      const registeredUsersJSON = localStorage.getItem("e-furnito-registered-users");
+      if (registeredUsersJSON) {
+        const registeredUsers: StoredUser[] = JSON.parse(registeredUsersJSON);
+        const matchedUser = registeredUsers.find(
+          (u) => u.email === email && u.password === password
+        );
+        
+        if (matchedUser) {
+          // Don't include password in the user object stored in state
+          const { password: _, ...userWithoutPassword } = matchedUser;
+          setUser(userWithoutPassword);
+          localStorage.setItem("e-furnito-user", JSON.stringify(userWithoutPassword));
+          toast.success(`${matchedUser.role === 'seller' ? 'Seller' : 'User'} signed in successfully`);
+          setIsLoading(false);
+          return true;
+        }
+      }
+      
+      // If no match found
+      toast.error("Invalid credentials");
+      setIsLoading(false);
+      return false;
     } catch (error) {
       console.error("Login error:", error);
       toast.error("Sign in failed");
@@ -94,17 +119,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Simulating register API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
       
+      // Check if user already exists
+      const registeredUsersJSON = localStorage.getItem("e-furnito-registered-users");
+      let registeredUsers: StoredUser[] = registeredUsersJSON ? JSON.parse(registeredUsersJSON) : [];
+      
+      if (registeredUsers.some(u => u.email === email)) {
+        toast.error("User with this email already exists");
+        setIsLoading(false);
+        return false;
+      }
+      
       // Create a new user
-      const newUser: User = {
+      const newUser: StoredUser = {
         id: Math.random().toString(36).substring(2, 9),
         name,
         email,
         role: userType === "seller" ? "seller" : "user",
-        avatar: "/placeholder.svg"
+        avatar: "/placeholder.svg",
+        password
       };
       
-      setUser(newUser);
-      localStorage.setItem("e-furnito-user", JSON.stringify(newUser));
+      // Save to registered users in localStorage
+      registeredUsers.push(newUser);
+      localStorage.setItem("e-furnito-registered-users", JSON.stringify(registeredUsers));
+      
+      // Don't include password in the user object stored in state
+      const { password: _, ...userWithoutPassword } = newUser;
+      
+      // Set as current user
+      setUser(userWithoutPassword);
+      localStorage.setItem("e-furnito-user", JSON.stringify(userWithoutPassword));
+      
       toast.success(userType === "seller" ? "Seller registered successfully" : "Registered successfully");
       setIsLoading(false);
       return true;

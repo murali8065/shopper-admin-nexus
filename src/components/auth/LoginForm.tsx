@@ -86,6 +86,7 @@ const LoginForm = () => {
             <p>Demo accounts:</p>
             <p>User: user@example.com / Password: user</p>
             <p>Admin: admin@example.com / Password: admin</p>
+            <p>Seller: seller@example.com / Password: seller</p>
           </div>
         </form>
       </TabsContent>
@@ -130,6 +131,10 @@ const LoginForm = () => {
                 Register as Seller
               </Link>
             </p>
+          </div>
+          <div className="mt-4 text-center text-xs text-muted-foreground">
+            <p>Demo seller account:</p>
+            <p>Email: seller@example.com / Password: seller</p>
           </div>
         </form>
       </TabsContent>
